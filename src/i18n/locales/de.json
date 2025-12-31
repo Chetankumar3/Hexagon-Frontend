@@ -1,0 +1,108 @@
+{
+  "common": {
+    "home": "Startseite",
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "dashboard": "Dashboard",
+    "courses": "Kurse",
+    "reels": "Reels",
+    "studio": "Studio",
+    "feed": "Feed",
+    "vr": "VR-Klassenzimmer",
+    "about": "Über uns",
+    "challenges": "Herausforderungen",
+    "loading": "Lädt...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "submit": "Absenden",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "play": "Abspielen",
+    "pause": "Pause",
+    "like": "Gefällt mir",
+    "share": "Teilen",
+    "comment": "Kommentieren",
+    "views": "Aufrufe",
+    "noData": "Keine Daten verfügbar"
+  },
+  "header": {
+    "title": "Hexagon",
+    "subtitle": "Wir erstellen schöne Produkte mit den neuesten Technologien und Frameworks. Wir sind ein Team leidenschaftlicher Entwickler und Designer, die es lieben, erstaunliche Produkte zu erstellen."
+  },
+  "reels": {
+    "title": "Reels Feed",
+    "subtitle": "Durchsuchen und sehen Sie erstaunliche Reels",
+    "studioTitle": "Reels Studio",
+    "studioSubtitle": "Erstellen und verwalten Sie Ihre Reels",
+    "generateReel": "Reel generieren",
+    "generating": "Wird generiert…",
+    "promptPlaceholder": "Beschreiben Sie Ihre Reel-Idee... (z.B., Wie man perfekten Kaffee macht)",
+    "clear": "Löschen",
+    "viewFeed": "Feed ansehen",
+    "loadMore": "Mehr Reels laden",
+    "noReels": "Keine Reels verfügbar",
+    "scene": "Szene",
+    "of": "von",
+    "reel": "Reel",
+    "scenes": "Szenen",
+    "totalDuration": "Gesamtdauer",
+    "duration": "Dauer"
+  },
+  "courses": {
+    "title": "Kurse",
+    "createCourse": "Kurs erstellen",
+    "enroll": "Einschreiben",
+    "enrolled": "Eingeschrieben",
+    "instructor": "Dozent",
+    "students": "Studenten",
+    "duration": "Dauer",
+    "level": "Niveau",
+    "description": "Beschreibung",
+    "curriculum": "Lehrplan",
+    "reviews": "Bewertungen"
+  },
+  "dashboard": {
+    "title": "Lern-Dashboard",
+    "inProgress": "In Bearbeitung",
+    "completed": "Abgeschlossen",
+    "upcoming": "Bevorstehend",
+    "recentActivity": "Letzte Aktivität"
+  },
+  "auth": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "rememberMe": "Angemeldet bleiben",
+    "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
+    "dontHaveAccount": "Haben Sie noch kein Konto?",
+    "signInWithGoogle": "Mit Google anmelden",
+    "signUpWithGoogle": "Mit Google registrieren"
+  },
+  "vr": {
+    "title": "VR-Klassenzimmer",
+    "joinRoom": "Raum beitreten",
+    "enterUsername": "Geben Sie Ihren Benutzernamen ein",
+    "connecting": "Verbinden...",
+    "connected": "Verbunden",
+    "disconnected": "Getrennt",
+    "usersOnline": "Benutzer online",
+    "speaking": "Spricht"
+  },
+  "footer": {
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen",
+    "copyright": "Alle Rechte vorbehalten"
+  }
+}
+

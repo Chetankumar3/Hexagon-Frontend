@@ -1,0 +1,108 @@
+{
+  "common": {
+    "home": "ホーム",
+    "login": "ログイン",
+    "signup": "サインアップ",
+    "logout": "ログアウト",
+    "profile": "プロフィール",
+    "dashboard": "ダッシュボード",
+    "courses": "コース",
+    "reels": "リール",
+    "studio": "スタジオ",
+    "feed": "フィード",
+    "vr": "VR教室",
+    "about": "について",
+    "challenges": "チャレンジ",
+    "loading": "読み込み中...",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "edit": "編集",
+    "delete": "削除",
+    "create": "作成",
+    "search": "検索",
+    "submit": "送信",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "play": "再生",
+    "pause": "一時停止",
+    "like": "いいね",
+    "share": "共有",
+    "comment": "コメント",
+    "views": "再生回数",
+    "noData": "データなし"
+  },
+  "header": {
+    "title": "Hexagon",
+    "subtitle": "最新の技術とフレームワークを使用して美しい製品を構築しています。私たちは、素晴らしい製品を作ることが大好きな情熱的な開発者とデザイナーのチームです。"
+  },
+  "reels": {
+    "title": "リールフィード",
+    "subtitle": "素晴らしいリールを閲覧して視聴",
+    "studioTitle": "リールスタジオ",
+    "studioSubtitle": "リールを作成して管理",
+    "generateReel": "リールを生成",
+    "generating": "生成中…",
+    "promptPlaceholder": "リールのアイデアを説明してください...（例：完璧なコーヒーの作り方）",
+    "clear": "クリア",
+    "viewFeed": "フィードを表示",
+    "loadMore": "さらにリールを読み込む",
+    "noReels": "リールなし",
+    "scene": "シーン",
+    "of": "の",
+    "reel": "リール",
+    "scenes": "シーン",
+    "totalDuration": "合計時間",
+    "duration": "時間"
+  },
+  "courses": {
+    "title": "コース",
+    "createCourse": "コースを作成",
+    "enroll": "登録",
+    "enrolled": "登録済み",
+    "instructor": "講師",
+    "students": "学生",
+    "duration": "時間",
+    "level": "レベル",
+    "description": "説明",
+    "curriculum": "カリキュラム",
+    "reviews": "レビュー"
+  },
+  "dashboard": {
+    "title": "学習ダッシュボード",
+    "inProgress": "進行中",
+    "completed": "完了",
+    "upcoming": "予定",
+    "recentActivity": "最近のアクティビティ"
+  },
+  "auth": {
+    "email": "メール",
+    "password": "パスワード",
+    "confirmPassword": "パスワードを確認",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "rememberMe": "ログイン状態を保持",
+    "alreadyHaveAccount": "アカウントをお持ちですか？",
+    "dontHaveAccount": "アカウントをお持ちでないですか？",
+    "signInWithGoogle": "Googleでログイン",
+    "signUpWithGoogle": "Googleでサインアップ"
+  },
+  "vr": {
+    "title": "VR教室",
+    "joinRoom": "ルームに参加",
+    "enterUsername": "ユーザー名を入力",
+    "connecting": "接続中...",
+    "connected": "接続済み",
+    "disconnected": "切断済み",
+    "usersOnline": "オンラインユーザー",
+    "speaking": "話している"
+  },
+  "footer": {
+    "about": "私たちについて",
+    "contact": "お問い合わせ",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "copyright": "全著作権所有"
+  }
+}
+

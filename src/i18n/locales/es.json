@@ -1,0 +1,108 @@
+{
+  "common": {
+    "home": "Inicio",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "dashboard": "Panel",
+    "courses": "Cursos",
+    "reels": "Reels",
+    "studio": "Estudio",
+    "feed": "Feed",
+    "vr": "Aula VR",
+    "about": "Acerca de",
+    "challenges": "Desafíos",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "create": "Crear",
+    "search": "Buscar",
+    "submit": "Enviar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "like": "Me gusta",
+    "share": "Compartir",
+    "comment": "Comentar",
+    "views": "visualizaciones",
+    "noData": "No hay datos disponibles"
+  },
+  "header": {
+    "title": "Hexagon",
+    "subtitle": "Construimos productos hermosos con las últimas tecnologías y frameworks. Somos un equipo de desarrolladores y diseñadores apasionados que aman construir productos increíbles."
+  },
+  "reels": {
+    "title": "Feed de Reels",
+    "subtitle": "Explora y mira reels increíbles",
+    "studioTitle": "Estudio de Reels",
+    "studioSubtitle": "Crea y gestiona tus reels",
+    "generateReel": "Generar Reel",
+    "generating": "Generando…",
+    "promptPlaceholder": "Describe tu idea de reel... (ej., Cómo hacer café perfecto)",
+    "clear": "Limpiar",
+    "viewFeed": "Ver Feed",
+    "loadMore": "Cargar Más Reels",
+    "noReels": "No hay reels disponibles",
+    "scene": "Escena",
+    "of": "de",
+    "reel": "Reel",
+    "scenes": "escenas",
+    "totalDuration": "Duración Total",
+    "duration": "Duración"
+  },
+  "courses": {
+    "title": "Cursos",
+    "createCourse": "Crear Curso",
+    "enroll": "Inscribirse",
+    "enrolled": "Inscrito",
+    "instructor": "Instructor",
+    "students": "Estudiantes",
+    "duration": "Duración",
+    "level": "Nivel",
+    "description": "Descripción",
+    "curriculum": "Plan de estudios",
+    "reviews": "Reseñas"
+  },
+  "dashboard": {
+    "title": "Panel de Aprendizaje",
+    "inProgress": "En Progreso",
+    "completed": "Completado",
+    "upcoming": "Próximos",
+    "recentActivity": "Actividad Reciente"
+  },
+  "auth": {
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "rememberMe": "Recordarme",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "dontHaveAccount": "¿No tienes una cuenta?",
+    "signInWithGoogle": "Iniciar sesión con Google",
+    "signUpWithGoogle": "Registrarse con Google"
+  },
+  "vr": {
+    "title": "Aula VR",
+    "joinRoom": "Unirse a la Sala",
+    "enterUsername": "Ingresa tu nombre de usuario",
+    "connecting": "Conectando...",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "usersOnline": "Usuarios en línea",
+    "speaking": "Hablando"
+  },
+  "footer": {
+    "about": "Acerca de Nosotros",
+    "contact": "Contacto",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio",
+    "copyright": "Todos los derechos reservados"
+  }
+}
+

@@ -1,0 +1,108 @@
+{
+  "common": {
+    "home": "Accueil",
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "logout": "Déconnexion",
+    "profile": "Profil",
+    "dashboard": "Tableau de bord",
+    "courses": "Cours",
+    "reels": "Reels",
+    "studio": "Studio",
+    "feed": "Fil",
+    "vr": "Classe VR",
+    "about": "À propos",
+    "challenges": "Défis",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "create": "Créer",
+    "search": "Rechercher",
+    "submit": "Soumettre",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "play": "Lire",
+    "pause": "Pause",
+    "like": "J'aime",
+    "share": "Partager",
+    "comment": "Commenter",
+    "views": "vues",
+    "noData": "Aucune donnée disponible"
+  },
+  "header": {
+    "title": "Hexagon",
+    "subtitle": "Nous créons de beaux produits avec les dernières technologies et frameworks. Nous sommes une équipe de développeurs et designers passionnés qui aiment créer des produits incroyables."
+  },
+  "reels": {
+    "title": "Fil de Reels",
+    "subtitle": "Parcourez et regardez des reels incroyables",
+    "studioTitle": "Studio de Reels",
+    "studioSubtitle": "Créez et gérez vos reels",
+    "generateReel": "Générer un Reel",
+    "generating": "Génération…",
+    "promptPlaceholder": "Décrivez votre idée de reel... (ex., Comment faire un café parfait)",
+    "clear": "Effacer",
+    "viewFeed": "Voir le Fil",
+    "loadMore": "Charger Plus de Reels",
+    "noReels": "Aucun reel disponible",
+    "scene": "Scène",
+    "of": "de",
+    "reel": "Reel",
+    "scenes": "scènes",
+    "totalDuration": "Durée Totale",
+    "duration": "Durée"
+  },
+  "courses": {
+    "title": "Cours",
+    "createCourse": "Créer un Cours",
+    "enroll": "S'inscrire",
+    "enrolled": "Inscrit",
+    "instructor": "Instructeur",
+    "students": "Étudiants",
+    "duration": "Durée",
+    "level": "Niveau",
+    "description": "Description",
+    "curriculum": "Programme",
+    "reviews": "Avis"
+  },
+  "dashboard": {
+    "title": "Tableau de Bord d'Apprentissage",
+    "inProgress": "En Cours",
+    "completed": "Terminé",
+    "upcoming": "À Venir",
+    "recentActivity": "Activité Récente"
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié?",
+    "rememberMe": "Se souvenir de moi",
+    "alreadyHaveAccount": "Vous avez déjà un compte?",
+    "dontHaveAccount": "Vous n'avez pas de compte?",
+    "signInWithGoogle": "Se connecter avec Google",
+    "signUpWithGoogle": "S'inscrire avec Google"
+  },
+  "vr": {
+    "title": "Classe VR",
+    "joinRoom": "Rejoindre la Salle",
+    "enterUsername": "Entrez votre nom d'utilisateur",
+    "connecting": "Connexion...",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté",
+    "usersOnline": "Utilisateurs en ligne",
+    "speaking": "Parle"
+  },
+  "footer": {
+    "about": "À Propos de Nous",
+    "contact": "Contact",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation",
+    "copyright": "Tous droits réservés"
+  }
+}
+
