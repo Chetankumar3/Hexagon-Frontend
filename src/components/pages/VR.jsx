@@ -1,12 +1,14 @@
-import React, { useRef, useState, Suspense, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { io } from 'socket.io-client';
 import API_CONFIG from '../../config/api.js';
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare  } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, X, Upload, Maximize } from "lucide-react";
 
-// Whiteboard Texture Component
+// --- Sub-Components ---
+
+// Whiteboard Texture Component (The 3D view)
 const WhiteboardTexture = ({ imageUrl }) => {
   const texture = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -21,16 +23,9 @@ const WhiteboardTexture = ({ imageUrl }) => {
           setIsLoaded(true);
         },
         undefined,
-        (error) => {
-          console.error('Error loading whiteboard texture:', error);
-        }
+        (error) => console.error('Error loading whiteboard texture:', error)
       );
     }
-    return () => {
-      if (texture.current) {
-        texture.current.dispose();
-      }
-    };
   }, [imageUrl]);
 
   if (!isLoaded || !texture.current) return null;
@@ -43,1194 +38,642 @@ const WhiteboardTexture = ({ imageUrl }) => {
   );
 };
 
-// Whiteboard Component
-const Whiteboard = ({ imageUrl, onImageClick }) => {
+// 3D Whiteboard Object
+const Whiteboard = ({ imageUrl, onOpenModal }) => {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <group position={[0, 4, -8]}>
-      {/* Whiteboard frame */}
+      {/* Frame */}
       <mesh position={[0, 0, 0]} castShadow receiveShadow>
         <boxGeometry args={[12, 6, 0.1]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.3} />
       </mesh>
 
-      {/* Whiteboard surface - clickable */}
+      {/* Surface - Click to open Modal */}
       <mesh
         position={[0, 0, 0.06]}
         receiveShadow
-        onClick={onImageClick}
-        onPointerOver={(e) => {
+        onClick={(e) => {
           e.stopPropagation();
-          document.body.style.cursor = 'pointer';
+          onOpenModal();
         }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
+        onPointerOver={() => {
+          document.body.style.cursor = 'pointer';
+          setHovered(true);
+        }}
+        onPointerOut={() => {
           document.body.style.cursor = 'default';
+          setHovered(false);
         }}
       >
         <planeGeometry args={[11.5, 5.5]} />
         <meshStandardMaterial
-          color="#ffffff"
+          color={hovered ? "#ffffee" : "#ffffff"}
           roughness={0.9}
         />
       </mesh>
 
-      {/* Image on whiteboard */}
+      {/* Image Texture */}
       {imageUrl && <WhiteboardTexture imageUrl={imageUrl} />}
+      
+      {/* Hover Text Hint */}
+      {hovered && (
+        <Text position={[0, 0, 0.2]} fontSize={0.5} color="#333">
+          Click to Open
+        </Text>
+      )}
     </group>
   );
 };
 
-// Simple Floor
-const Floor = () => {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-      <planeGeometry args={[100, 100]} />
-      <meshStandardMaterial
-        color="#e8eaf6"
-        roughness={0.8}
-        metalness={0.2}
-      />
+const Floor = () => (
+  <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+    <planeGeometry args={[100, 100]} />
+    <meshStandardMaterial color="#e8eaf6" roughness={0.8} />
+  </mesh>
+);
+
+const ElongatedTable = ({ position }) => (
+  <group position={position}>
+    <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+      <boxGeometry args={[16, 0.15, 3]} />
+      <meshStandardMaterial color="#5d4037" roughness={0.3} />
     </mesh>
-  );
-};
-
-// Elongated Table Component
-const ElongatedTable = ({ position }) => {
-  return (
-    <group position={position}>
-      {/* Main elongated tabletop */}
-      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
-        <boxGeometry args={[16, 0.15, 3]} />
-        <meshStandardMaterial
-          color="#5d4037"
-          roughness={0.3}
-          metalness={0.1}
-        />
+    {[
+       [-7, 0.375, 1.2], [-7, 0.375, -1.2],
+       [-2.5, 0.375, 1.2], [-2.5, 0.375, -1.2],
+       [2.5, 0.375, 1.2], [2.5, 0.375, -1.2],
+       [7, 0.375, 1.2], [7, 0.375, -1.2]
+    ].map((pos, i) => (
+      <mesh key={i} position={pos} castShadow>
+        <cylinderGeometry args={[0.08, 0.08, 0.75]} />
+        <meshStandardMaterial color="#3e2723" />
       </mesh>
+    ))}
+  </group>
+);
 
-      {/* Table legs - evenly distributed */}
-      {[
-        [-7, 0.375, 1.2],
-        [-7, 0.375, -1.2],
-        [-2.5, 0.375, 1.2],
-        [-2.5, 0.375, -1.2],
-        [2.5, 0.375, 1.2],
-        [2.5, 0.375, -1.2],
-        [7, 0.375, 1.2],
-        [7, 0.375, -1.2]
-      ].map((pos, i) => (
-        <mesh key={i} position={pos} castShadow>
-          <cylinderGeometry args={[0.08, 0.08, 0.75]} />
-          <meshStandardMaterial color="#3e2723" />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-// Big Comfortable Sofa
-const BigSofa = ({ position, rotation = [0, 0, 0] }) => {
-  return (
-    <group position={position} rotation={rotation}>
-      {/* Sofa base/seat */}
-      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5, 0.6, 2]} />
-        <meshStandardMaterial
-          color="#1565c0"
-          roughness={0.8}
-        />
-      </mesh>
-
-      {/* Sofa backrest */}
-      <mesh position={[0, 1.1, -0.8]} castShadow receiveShadow>
-        <boxGeometry args={[5, 1.4, 0.4]} />
-        <meshStandardMaterial
-          color="#1976d2"
-          roughness={0.8}
-        />
-      </mesh>
-
-      {/* Armrests */}
-      <mesh position={[-2.3, 0.7, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.4, 1, 2]} />
-        <meshStandardMaterial
-          color="#1976d2"
-          roughness={0.8}
-        />
-      </mesh>
-      <mesh position={[2.3, 0.7, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.4, 1, 2]} />
-        <meshStandardMaterial
-          color="#1976d2"
-          roughness={0.8}
-        />
-      </mesh>
-
-      {/* Cushions for comfort detail */}
-      {[-1.5, 0, 1.5].map((x, i) => (
-        <mesh key={i} position={[x, 0.75, 0]} castShadow>
-          <boxGeometry args={[1.2, 0.3, 1.5]} />
-          <meshStandardMaterial
-            color="#42a5f5"
-            roughness={0.9}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-};
+const BigSofa = ({ position, rotation = [0, 0, 0] }) => (
+  <group position={position} rotation={rotation}>
+    <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+      <boxGeometry args={[5, 0.6, 2]} />
+      <meshStandardMaterial color="#1565c0" roughness={0.8} />
+    </mesh>
+    <mesh position={[0, 1.1, -0.8]} castShadow receiveShadow>
+      <boxGeometry args={[5, 1.4, 0.4]} />
+      <meshStandardMaterial color="#1976d2" roughness={0.8} />
+    </mesh>
+    <mesh position={[-2.3, 0.7, 0]} castShadow receiveShadow>
+      <boxGeometry args={[0.4, 1, 2]} />
+      <meshStandardMaterial color="#1976d2" roughness={0.8} />
+    </mesh>
+    <mesh position={[2.3, 0.7, 0]} castShadow receiveShadow>
+      <boxGeometry args={[0.4, 1, 2]} />
+      <meshStandardMaterial color="#1976d2" roughness={0.8} />
+    </mesh>
+  </group>
+);
 
 // Realistic Person Avatar
-const PersonAvatar = ({ position, name, color = "#ffb74d", isSpeaking = false }) => {
+const PersonAvatar = ({ position, name, color = "#ffb74d", isSpeaking = false, isMe = false }) => {
   const meshRef = useRef();
-
+  
+  // Smooth position interpolation
   useFrame((state) => {
     if (meshRef.current) {
-      // Subtle breathing animation
+      // Breathing animation
       const breathing = isSpeaking ? 0.05 : 0.02;
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8) * breathing;
+      const breatheY = Math.sin(state.clock.elapsedTime * 8) * breathing;
+      
+      // Lerp (Linear Interpolation) for smooth movement if position changes abruptly
+      meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, position[0], 0.1);
+      meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, position[2], 0.1);
+      // Keep Y relative to breathing + floor height
+      meshRef.current.position.y = position[1] + breatheY;
     }
   });
 
   return (
     <group ref={meshRef} position={position}>
+      {/* Indicator for "Me" */}
+      {isMe && (
+        <mesh position={[0, 2.2, 0]}>
+           <coneGeometry args={[0.1, 0.2, 4]} />
+           <meshBasicMaterial color="yellow" />
+        </mesh>
+      )}
+
       {/* Body */}
       <mesh position={[0, 0.45, 0]} castShadow>
         <capsuleGeometry args={[0.25, 0.5]} />
-        <meshStandardMaterial
-          color={isSpeaking ? color : color}
+        <meshStandardMaterial 
+          color={color} 
           roughness={0.7}
           emissive={isSpeaking ? color : "#000000"}
-          emissiveIntensity={isSpeaking ? 0.3 : 0}
+          emissiveIntensity={isSpeaking ? 0.4 : 0}
         />
       </mesh>
 
       {/* Head */}
       <mesh position={[0, 1.0, 0]} castShadow>
         <sphereGeometry args={[0.2]} />
-        <meshStandardMaterial
-          color="#ffe0b2"
-          roughness={0.6}
-        />
-      </mesh>
-
-      {/* Arms */}
-      <mesh position={[-0.3, 0.5, 0]} rotation={[0, 0, 0.3]} castShadow>
-        <capsuleGeometry args={[0.08, 0.4]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <mesh position={[0.3, 0.5, 0]} rotation={[0, 0, -0.3]} castShadow>
-        <capsuleGeometry args={[0.08, 0.4]} />
-        <meshStandardMaterial color={color} />
+        <meshStandardMaterial color="#ffe0b2" roughness={0.6} />
       </mesh>
 
       {/* Name label */}
       <Text
-        position={[0, 1.4, 0]}
-        fontSize={0.15}
-        color={isSpeaking ? "#1976d2" : "#1e293b"}
+        position={[0, 1.5, 0]}
+        fontSize={0.2}
+        color={isSpeaking ? "#1976d2" : (isMe ? "#00aa00" : "#1e293b")}
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.01}
+        outlineWidth={0.02}
         outlineColor="#ffffff"
       >
-        {name}
+        {isMe ? "You" : name}
       </Text>
     </group>
   );
 };
 
-// Main Classroom Scene
-const ClassroomScene = ({ speakingUsers = [], whiteboardImage, onWhiteboardClick }) => {
-  // People sitting around the table
-  const tablePositions = [
-    { pos: [-6, 0.75, -2], name: "Alice", color: "#ef5350" },
-    { pos: [-3, 0.75, -2], name: "Bob", color: "#42a5f5" },
-    { pos: [0, 0.75, -2], name: "Carol", color: "#66bb6a" },
-    { pos: [3, 0.75, -2], name: "David", color: "#ffa726" },
-    { pos: [6, 0.75, -2], name: "Emma", color: "#ab47bc" },
-    { pos: [-6, 0.75, 2], name: "Frank", color: "#26c6da" },
-    { pos: [-3, 0.75, 2], name: "Grace", color: "#ec407a" },
-    { pos: [0, 0.75, 2], name: "Henry", color: "#7e57c2" },
-    { pos: [3, 0.75, 2], name: "Ivy", color: "#29b6f6" },
-    { pos: [6, 0.75, 2], name: "Jack", color: "#9ccc65" }
-  ];
-
-  // People sitting on sofa
-  const sofaPositions = [
-    { pos: [-1.8, 0.7, 8], name: "Kate", color: "#ff7043" },
-    { pos: [-0.6, 0.7, 8], name: "Leo", color: "#5c6bc0" },
-    { pos: [0.6, 0.7, 8], name: "Mia", color: "#26a69a" },
-    { pos: [1.8, 0.7, 8], name: "Noah", color: "#ffca28" }
-  ];
-
+// Main Scene
+const ClassroomScene = ({ 
+  myPosition, 
+  otherUsers, // Array of user objects
+  userPositions, // Map of socketId -> [x,y,z]
+  speakingUsers, 
+  whiteboardImage, 
+  onOpenWhiteboard,
+  username 
+}) => {
   return (
     <>
-      {/* Lighting */}
       <ambientLight intensity={0.6} />
-      <directionalLight
-        position={[10, 20, 10]}
-        intensity={1}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-25}
-        shadow-camera-right={25}
-        shadow-camera-top={25}
-        shadow-camera-bottom={-25}
-      />
+      <directionalLight position={[10, 20, 10]} intensity={1} castShadow />
       <pointLight position={[-10, 10, -10]} intensity={0.5} />
 
-      {/* Scene elements */}
       <Floor />
-
-      {/* Elongated table */}
       <ElongatedTable position={[0, 0, 0]} />
-
-      {/* People around table */}
-      {tablePositions.map((person, i) => {
-        const isSpeaking = speakingUsers.includes(person.name);
-        return (
-          <PersonAvatar
-            key={`table-${i}`}
-            position={person.pos}
-            name={person.name}
-            color={person.color}
-            isSpeaking={isSpeaking}
-          />
-        );
-      })}
-
-      {/* Big sofa */}
       <BigSofa position={[0, 0, 9]} rotation={[0, Math.PI, 0]} />
 
-      {/* People on sofa */}
-      {sofaPositions.map((person, i) => {
-        const isSpeaking = speakingUsers.includes(person.name);
+      {/* Render Myself */}
+      <PersonAvatar 
+        position={myPosition} 
+        name={username} 
+        color="#4caf50" // Green for self
+        isSpeaking={speakingUsers.includes(username)}
+        isMe={true}
+      />
+
+      {/* Render Other Connected Users */}
+      {otherUsers.map((user) => {
+        // If we have a live position from socket, use it. Otherwise default to waiting area.
+        const pos = userPositions[user.socketId] || [-5, 0.75, 8]; 
+        // Generate a stable color based on name length/char code
+        const colorList = ["#ef5350", "#42a5f5", "#ab47bc", "#ffa726", "#26c6da", "#ec407a"];
+        const colorIndex = user.username.length % colorList.length;
+        
         return (
           <PersonAvatar
-            key={`sofa-${i}`}
-            position={person.pos}
-            name={person.name}
-            color={person.color}
-            isSpeaking={isSpeaking}
+            key={user.socketId}
+            position={pos}
+            name={user.username}
+            color={colorList[colorIndex]}
+            isSpeaking={speakingUsers.includes(user.username)}
           />
         );
       })}
 
-      {/* Whiteboard */}
-      <Whiteboard imageUrl={whiteboardImage} onImageClick={onWhiteboardClick} />
+      <Whiteboard imageUrl={whiteboardImage} onOpenModal={onOpenWhiteboard} />
     </>
   );
 };
 
-// Main App Component
+// --- Main Application ---
+
 export default function VRClassroom() {
+  // Connection State
   const [loading, setLoading] = useState(false);
   const [socket, setSocket] = useState(null);
   const [username, setUsername] = useState('');
   const [backendUrl, setBackendUrl] = useState(API_CONFIG.getCustomBackendUrl() || API_CONFIG.getCurrentBackendUrl());
   const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectedUsers, setConnectedUsers] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [speakingUsers, setSpeakingUsers] = useState([]);
   const [error, setError] = useState('');
+
+  // Classroom State
+  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [speakingUsers, setSpeakingUsers] = useState([]);
   const [whiteboardImage, setWhiteboardImage] = useState(null);
+  const [showWhiteboardModal, setShowWhiteboardModal] = useState(false); // New Modal State
+  
+  // Chat State
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(false);
   const chatMessagesEndRef = useRef(null);
 
+  // Audio Refs
+  const [isMuted, setIsMuted] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const mediaStreamRef = useRef(null);
   const audioContextRef = useRef(null);
-  const audioElementsRef = useRef({});
   const audioContextsRef = useRef({});
-  const audioQueuesRef = useRef({});
-  const speakingTimeoutRef = useRef({});
   const gainNodesRef = useRef({});
 
-  // Initialize Socket.IO connection
+  // Movement State
+  const [myPosition, setMyPosition] = useState([0, 0.75, 4]); // Start slightly back
+  const [otherUserPositions, setOtherUserPositions] = useState({}); // Map socketId -> [x,y,z]
+  const keysPressed = useRef({});
+
+  // 1. Socket Setup
   useEffect(() => {
-    // Only connect after user has entered username and modal is closed
     if (!username || showUsernameModal) return;
 
     const currentBackendUrl = backendUrl || API_CONFIG.getCurrentBackendUrl();
-    // Remove trailing slashes and ensure we don't duplicate /vr
     const baseUrl = currentBackendUrl.replace(/\/+$/, '').replace(/\/vr$/, '');
     const socketUrl = `${baseUrl}/vr`;
-    console.log(`[VR] Connecting to: ${socketUrl}`);
 
     const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
       autoConnect: true,
     });
 
     socketInstance.on('connect', () => {
-      console.log('[VR] Connected to VR server, sending join event...');
       setIsConnected(true);
       setError('');
-      // Automatically send join event when connected
       socketInstance.emit('join', { username: username.trim() });
     });
 
-    socketInstance.on('disconnect', (reason) => {
-      console.log(`[VR] Disconnected from VR server. Reason: ${reason}`);
-      setIsConnected(false);
-
-      // If disconnected unexpectedly, try to reconnect
-      if (reason === 'io server disconnect' || reason === 'transport close') {
-        console.log('[VR] Attempting to reconnect...');
-      }
-    });
-
-    socketInstance.on('connect_error', (error) => {
-      console.error('[VR] Connection error:', error);
-      setError(`Connection failed: ${error.message || 'Unable to connect to server'}`);
-      setIsConnected(false);
-    });
-
-    socketInstance.on('error', (data) => {
-      console.error('Socket error:', data);
-      setError(data.message || 'An error occurred');
-    });
-
-    socketInstance.on('joined', (data) => {
-      console.log('Joined VR room:', data);
-      setError('');
-    });
-
+    socketInstance.on('disconnect', () => setIsConnected(false));
+    
+    // User Management
+    socketInstance.on('usersList', (data) => setConnectedUsers(data.users));
     socketInstance.on('userJoined', (data) => {
-      console.log('User joined:', data.username);
-      setConnectedUsers((prev) => [...prev, { username: data.username, socketId: data.socketId }]);
+      setConnectedUsers(prev => [...prev, { username: data.username, socketId: data.socketId }]);
     });
-
     socketInstance.on('userLeft', (data) => {
-      console.log('User left:', data.username);
-      setConnectedUsers((prev) => prev.filter((u) => u.socketId !== data.socketId));
-      // Clean up audio element
-      if (audioElementsRef.current[data.socketId]) {
-        const audioEl = audioElementsRef.current[data.socketId];
-        if (audioEl && typeof audioEl.pause === 'function') {
-          audioEl.pause();
-        }
-        delete audioElementsRef.current[data.socketId];
-      }
-      // Clean up audio context
+      setConnectedUsers(prev => prev.filter(u => u.socketId !== data.socketId));
+      // Cleanup audio
       if (audioContextsRef.current[data.socketId]) {
-        const ctx = audioContextsRef.current[data.socketId];
-        if (ctx && ctx.close) {
-          ctx.close().catch(console.error);
-        }
+        audioContextsRef.current[data.socketId].close();
         delete audioContextsRef.current[data.socketId];
       }
-      // Clean up gain node
-      if (gainNodesRef.current[data.socketId]) {
-        delete gainNodesRef.current[data.socketId];
-      }
-      // Clean up queue
-      if (audioQueuesRef.current[data.socketId]) {
-        delete audioQueuesRef.current[data.socketId];
-      }
     });
 
-    socketInstance.on('usersList', (data) => {
-      console.log('Users list:', data.users);
-      setConnectedUsers(data.users);
+    // Movement Listener (Receiving other players moving)
+    socketInstance.on('playerMoved', (data) => {
+      // data = { socketId, position: [x, y, z] }
+      setOtherUserPositions(prev => ({
+        ...prev,
+        [data.socketId]: data.position
+      }));
     });
 
-    socketInstance.on('voice', (data) => {
-      handleIncomingVoice(data);
-    });
-
+    // Audio & Chat events
+    socketInstance.on('voice', handleIncomingVoice);
     socketInstance.on('userVoiceStart', (data) => {
-      setSpeakingUsers((prev) => {
-        if (!prev.includes(data.username)) {
-          return [...prev, data.username];
-        }
-        return prev;
-      });
-      // Clear timeout if exists
-      if (speakingTimeoutRef.current[data.username]) {
-        clearTimeout(speakingTimeoutRef.current[data.username]);
-      }
-      // Set timeout to remove speaking indicator after 2 seconds of silence
-      speakingTimeoutRef.current[data.username] = setTimeout(() => {
-        setSpeakingUsers((prev) => prev.filter((u) => u !== data.username));
-      }, 2000);
+        setSpeakingUsers(prev => [...prev, data.username]);
+        // Auto remove visual indicator after silence (fallback)
+        setTimeout(() => setSpeakingUsers(prev => prev.filter(u => u !== data.username)), 2000);
     });
-
     socketInstance.on('userVoiceEnd', (data) => {
-      setTimeout(() => {
-        setSpeakingUsers((prev) => prev.filter((u) => u !== data.username));
-      }, 500);
+        setSpeakingUsers(prev => prev.filter(u => u !== data.username));
     });
 
-    // Whiteboard events
     socketInstance.on('whiteboardUpdate', (data) => {
-      console.log('Whiteboard updated:', data);
-      if (data.imageUrl) {
-        setWhiteboardImage(data.imageUrl);
-      }
+      if (data.imageUrl) setWhiteboardImage(data.imageUrl);
     });
-
-    // Chat events
+    
     socketInstance.on('chatMessage', (data) => {
-      console.log('Chat message received:', data);
-      setChatMessages((prev) => [...prev, data]);
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    });
-
-    socketInstance.on('chatHistory', (data) => {
-      console.log('Chat history received:', data.messages);
-      setChatMessages(data.messages || []);
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      setChatMessages(prev => [...prev, data]);
+      setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });
 
     setSocket(socketInstance);
 
     return () => {
-      console.log('[VR] Cleaning up socket connection...');
-      if (socketInstance.connected) {
-        socketInstance.disconnect();
-      }
-      // Cleanup audio
-      Object.values(audioElementsRef.current).forEach((audio) => {
-        if (audio && typeof audio.pause === 'function') {
-          audio.pause();
-        }
-      });
-      audioElementsRef.current = {};
-
-      // Cleanup audio contexts
-      Object.values(audioContextsRef.current).forEach((ctx) => {
-        if (ctx && ctx.close) {
-          ctx.close().catch(console.error);
-        }
-      });
-      audioContextsRef.current = {};
-
-      // Cleanup queues
-      audioQueuesRef.current = {};
-      gainNodesRef.current = {};
+      socketInstance.disconnect();
+      stopVoiceCapture();
     };
-    // Only depend on username and showUsernameModal - backendUrl changes should not trigger reconnection
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [username, showUsernameModal]);
 
-  // Handle incoming voice data with proper streaming
+
+  // 2. Movement Logic (WASD / Arrows)
+  useEffect(() => {
+    const handleKeyDown = (e) => { keysPressed.current[e.code] = true; };
+    const handleKeyUp = (e) => { keysPressed.current[e.code] = false; };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Game Loop for movement
+    const moveInterval = setInterval(() => {
+        if (showUsernameModal || showWhiteboardModal) return; // Don't move if modals open
+
+        let dx = 0;
+        let dz = 0;
+        const speed = 0.15;
+
+        if (keysPressed.current['KeyW'] || keysPressed.current['ArrowUp']) dz -= speed;
+        if (keysPressed.current['KeyS'] || keysPressed.current['ArrowDown']) dz += speed;
+        if (keysPressed.current['KeyA'] || keysPressed.current['ArrowLeft']) dx -= speed;
+        if (keysPressed.current['KeyD'] || keysPressed.current['ArrowRight']) dx += speed;
+
+        if (dx !== 0 || dz !== 0) {
+            setMyPosition(prev => {
+                const newPos = [prev[0] + dx, prev[1], prev[2] + dz];
+                // Boundary check (simple room bounds)
+                if(newPos[0] > 10) newPos[0] = 10;
+                if(newPos[0] < -10) newPos[0] = -10;
+                if(newPos[2] > 12) newPos[2] = 12;
+                if(newPos[2] < -8) newPos[2] = -8;
+                
+                // Emit movement to server
+                if(socket) {
+                    socket.emit('playerMove', { position: newPos });
+                }
+                return newPos;
+            });
+        }
+    }, 30); // ~30fps update
+
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+        clearInterval(moveInterval);
+    };
+  }, [socket, showUsernameModal, showWhiteboardModal]);
+
+
+  // 3. Audio Logic
   const handleIncomingVoice = (data) => {
     try {
       if (!data.audioData) return;
+      
+      // Initialize AudioContext for specific user if needed
+      if (!audioContextsRef.current[data.socketId]) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextsRef.current[data.socketId] = ctx;
+      }
+      
+      const audioContext = audioContextsRef.current[data.socketId];
+      if (audioContext.state === 'suspended') audioContext.resume();
 
-      // Decode base64 to Int16Array
+      // Decode
       const binaryString = atob(data.audioData);
       const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      const int16Data = new Int16Array(bytes.buffer);
+      const float32Data = new Float32Array(int16Data.length);
+      for (let i = 0; i < int16Data.length; i++) float32Data[i] = int16Data[i] / 32768.0;
 
-      // Convert to Int16Array
-      const audioData = new Int16Array(bytes.buffer);
+      const buffer = audioContext.createBuffer(1, float32Data.length, 44100);
+      buffer.copyToChannel(float32Data, 0);
 
-      // Get or create audio context for this user
-      let audioContext = audioContextsRef.current[data.socketId];
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)({
-          sampleRate: 44100,
-        });
-        audioContextsRef.current[data.socketId] = audioContext;
-
-        // Create gain node for volume control
-        const gainNode = audioContext.createGain();
-        gainNode.gain.value = 1.0;
-        gainNode.connect(audioContext.destination);
-        gainNodesRef.current[data.socketId] = gainNode;
-
-        // Initialize queue
-        audioQueuesRef.current[data.socketId] = [];
-      }
-
-      // Resume audio context if suspended (browser autoplay policy)
-      if (audioContext.state === 'suspended') {
-        audioContext.resume().catch(console.error);
-      }
-
-      // Create audio buffer from chunk
-      const audioBuffer = audioContext.createBuffer(1, audioData.length, 44100);
-      const channelData = audioBuffer.getChannelData(0);
-
-      // Convert Int16 to Float32
-      for (let i = 0; i < audioData.length; i++) {
-        channelData[i] = audioData[i] / 32768.0;
-      }
-
-      // Create source and connect to gain node
       const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(gainNodesRef.current[data.socketId]);
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
 
-      // Play immediately
-      try {
-        source.start(0);
-      } catch (e) {
-        // If start fails, queue it
-        console.warn('Audio start failed, queueing:', e);
-        if (!audioQueuesRef.current[data.socketId]) {
-          audioQueuesRef.current[data.socketId] = [];
-        }
-        audioQueuesRef.current[data.socketId].push(source);
-      }
-    } catch (error) {
-      console.error('Error handling incoming voice:', error);
+    } catch (e) {
+      console.error("Audio error", e);
     }
   };
 
-  // File input ref for whiteboard
-  const whiteboardFileInputRef = useRef(null);
-
-  // Handle whiteboard click
-  const handleWhiteboardClick = () => {
-    whiteboardFileInputRef.current?.click();
-  };
-
-  // Handle whiteboard image upload
-  const handleWhiteboardFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageData = event.target?.result;
-        if (imageData && socket) {
-          // Update local state immediately for better UX
-          setWhiteboardImage(imageData);
-
-          // Broadcast to all users in classroom
-          socket.emit('whiteboardImage', {
-            imageUrl: imageData,
-            username: username,
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-    // Reset input to allow selecting same file again
-    if (whiteboardFileInputRef.current) {
-      whiteboardFileInputRef.current.value = '';
-    }
-  };
-
-  // Handle chat message send
-  const handleSendChatMessage = () => {
-    if (!chatInput.trim() || !socket) return;
-
-    socket.emit('chatMessage', {
-      message: chatInput.trim(),
-    });
-
-    setChatInput('');
-  };
-
-  // Handle chat input key press
-  const handleChatKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendChatMessage();
-    }
-  };
-
-  // Start voice capture
   const startVoiceCapture = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: true, noiseSuppression: true } 
       });
-
       mediaStreamRef.current = stream;
       setIsRecording(true);
 
-      // Create AudioContext for processing
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioContext;
-
       const source = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
       processor.onaudioprocess = (e) => {
         if (!socket || isMuted || !isRecording) return;
-
         const inputData = e.inputBuffer.getChannelData(0);
-        const buffer = new Int16Array(inputData.length);
-
+        const int16Data = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
-          buffer[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+          int16Data[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
         }
-
-        // Convert Int16Array to base64 for transmission
-        // Convert Int16Array to Uint8Array (little-endian)
-        const uint8Array = new Uint8Array(buffer.buffer);
-        const binaryString = String.fromCharCode.apply(null, Array.from(uint8Array));
-        const base64Audio = btoa(binaryString);
-
-        // Send audio data
-        socket.emit('voice', {
-          audioData: base64Audio,
-        });
+        // Send base64
+        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(int16Data.buffer)));
+        socket.emit('voice', { audioData: base64Audio });
       };
 
       source.connect(processor);
       processor.connect(audioContext.destination);
-
       socket.emit('voiceStart');
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      setError('Could not access microphone. Please check permissions.');
+    } catch (err) {
+      setError("Mic access denied");
     }
   };
 
-  // Stop voice capture
   const stopVoiceCapture = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
+    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
+    if (audioContextRef.current) audioContextRef.current.close();
     setIsRecording(false);
-    if (socket) {
-      socket.emit('voiceEnd');
+    socket?.emit('voiceEnd');
+  };
+
+  // 4. Whiteboard Handlers
+  const fileInputRef = useRef(null);
+  
+  const handleWhiteboardUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file && socket) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = ev.target.result;
+        setWhiteboardImage(img);
+        socket.emit('whiteboardImage', { imageUrl: img, username });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // Handle join
+  // UI Handlers
   const handleJoin = () => {
-    if (!username.trim()) {
-      setError('Please enter a username');
-      return;
-    }
-
-    // Save custom backend URL if provided
-    if (backendUrl && backendUrl !== API_CONFIG.getCurrentBackendUrl()) {
-      API_CONFIG.setCustomBackendUrl(backendUrl);
-    }
-
-    // Close modal - socket will connect automatically in useEffect
-    setShowUsernameModal(false);
+    if (username.trim()) setShowUsernameModal(false);
+    else setError("Username required");
   };
 
-  // Toggle mute
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
+  const handleSendChatMessage = () => {
+    if (chatInput.trim() && socket) {
+        socket.emit('chatMessage', { message: chatInput.trim(), username });
+        setChatInput('');
+    }
   };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopVoiceCapture();
-      if (socket) {
-        socket.disconnect();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      background: 'linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 100%)'
-    }}>
-      {/* Username Modal */}
+    <div style={{ width: '100vw', height: '100vh', background: '#e3f2fd', overflow: 'hidden' }}>
+      
+      {/* 1. LOGIN MODAL */}
       {showUsernameModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '40px',
-            borderRadius: '16px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-            maxWidth: '400px',
-            width: '90%',
-          }}>
-            <h2 style={{
-              margin: '0 0 20px 0',
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#000000',
-              textAlign: 'center',
-            }}>
-              Join VR Classroom
-            </h2>
-            <input
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                marginBottom: '15px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', padding: '40px', borderRadius: '16px', width: '400px' }}>
+            <h2>Enter VR Classroom</h2>
+            <input 
+              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border:'1px solid #ccc' }} 
+              placeholder="Your Name" 
+              value={username} 
+              onChange={e => setUsername(e.target.value)} 
             />
-            <div style={{
-              fontSize: '12px',
-              color: '#666',
-              marginBottom: '10px',
-              padding: '10px',
-              background: '#f5f5f5',
-              borderRadius: '6px',
-            }}>
-              <strong>Network Connection:</strong> If connecting from another device, enter the server IP address:
-            </div>
-            <input
-              type="text"
-              placeholder="Backend URL (e.g., http://192.168.1.100:5003)"
-              value={backendUrl}
-              onChange={(e) => setBackendUrl(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+             <input 
+              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border:'1px solid #ccc', fontSize:'12px' }} 
+              placeholder="Backend URL (Optional)" 
+              value={backendUrl} 
+              onChange={e => setBackendUrl(e.target.value)} 
             />
-            <div style={{
-              fontSize: '11px',
-              color: '#999',
-              marginBottom: '15px',
-              fontStyle: 'italic',
-              padding: '5px',
-            }}>
-              {/* Leave empty to use default (localhost). For network connections, use: http://[SERVER_IP]:5003 */}
-            </div>
-            {error && (
-              <div style={{
-                color: '#d32f2f',
-                fontSize: '14px',
-                marginBottom: '15px',
-              }}>
-                {error}
-              </div>
-            )}
-            <button
+            {error && <p style={{color:'red'}}>{error}</p>}
+            <button 
               onClick={handleJoin}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                background: '#000000',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-              onMouseOver={(e) => e.target.style.background = '#353535'}
-              onMouseOut={(e) => e.target.style.background = '#000000'}
+              style={{ width: '100%', padding: '12px', background: 'black', color:'white', borderRadius:'8px', cursor:'pointer' }}
             >
-              Join Room
+              Join
             </button>
           </div>
         </div>
       )}
 
-      {loading ? (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#1e293b',
-          fontSize: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
-          Loading...
-        </div>
-      ) : (
-        <Canvas
-          shadows
-          gl={{ antialias: true }}
-          onCreated={({ gl }) => {
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
-            setLoading(false);
-          }}
-        >
-          <PerspectiveCamera makeDefault position={[0, 8, 18]} fov={60} />
-          <Suspense fallback={null}>
-            <ClassroomScene
-              speakingUsers={speakingUsers}
-              whiteboardImage={whiteboardImage}
-              onWhiteboardClick={handleWhiteboardClick}
-            />
-          </Suspense>
-          <OrbitControls
-            enablePan
-            enableZoom
-            enableRotate
-            maxDistance={40}
-            minDistance={5}
-            maxPolarAngle={Math.PI / 2.1}
+      {/* 2. 3D CANVAS */}
+      <Canvas shadows camera={{ position: [0, 8, 18], fov: 60 }}>
+        <Suspense fallback={null}>
+          <ClassroomScene 
+            myPosition={myPosition}
+            otherUsers={connectedUsers.filter(u => u.username !== username)}
+            userPositions={otherUserPositions}
+            speakingUsers={speakingUsers}
+            whiteboardImage={whiteboardImage}
+            onOpenWhiteboard={() => setShowWhiteboardModal(true)}
+            username={username}
           />
-          <fog attach="fog" args={['#e3f2fd', 20, 60]} />
-        </Canvas>
-      )}
+        </Suspense>
+        {/* Orbit Controls mostly for looking around, disable pan so keys handle movement */}
+        <OrbitControls enablePan={true} maxPolarAngle={Math.PI / 2.1} />
+        <fog attach="fog" args={['#e3f2fd', 20, 60]} />
+      </Canvas>
 
-      {/* Hidden file input for whiteboard (outside Canvas) */}
-      <input
-        ref={whiteboardFileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleWhiteboardFileChange}
-      />
-
-      {/* Voice Controls */}
-      {!showUsernameModal && (
+      {/* 3. WHITEBOARD MODAL (2D Overlay) */}
+      {showWhiteboardModal && (
         <div style={{
-          position: 'absolute',
-          bottom: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: '10px',
-          zIndex: 100,
+            position: 'fixed', inset: 0, zIndex: 1500, background: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          <button
-            onClick={isRecording ? stopVoiceCapture : startVoiceCapture}
-            style={{
-              padding: '15px 25px',
-              fontSize: '16px',
-              fontWeight: '600',
-              background: '#000000',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            {isRecording ? (
-              <>
-                <MicOff size={24} />
-              </>
-            ) : (
-              <>
-                <Mic size={24} />
-              </>
-            )}
+            <div style={{
+                width: '90%', height: '85%', background: 'white', borderRadius: '10px',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative'
+            }}>
+                {/* Header */}
+                <div style={{ padding: '15px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0 }}>Whiteboard View</h2>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
+                             onClick={() => fileInputRef.current.click()}
+                             style={{ display:'flex', alignItems:'center', gap:'5px', padding:'8px 15px', background:'#2196f3', color:'white', border:'none', borderRadius:'5px', cursor:'pointer' }}
+                        >
+                            <Upload size={18}/> Upload Image
+                        </button>
+                        <button 
+                            onClick={() => setShowWhiteboardModal(false)}
+                            style={{ background:'transparent', border:'none', cursor:'pointer' }}
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                </div>
 
-          </button>
-          <button
-            onClick={toggleMute}
-            style={{
-              padding: '15px 25px',
-              fontSize: '16px',
-              fontWeight: '600',
-              background: '#000000',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-            }}
-          >
-            {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-          </button>
-        </div>
-      )}
-
-      {/* Chat Panel */}
-      {!showUsernameModal && (
-        <div style={{
-          position: 'absolute',
-          bottom: 20,
-          right: 20,
-          width: showChat ? '350px' : '60px',
-          height: showChat ? '600px' : '',
-          background: showChat ? '#ffffff' : 'rgba(255, 255, 255, 0.95)',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-          border: '1px solid #000000',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
-          zIndex: 100,
-        }}>
-          {/* Chat Toggle Button */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            style={{
-              width: '100%',
-              padding: '15px',
-              background: showChat ? '#transparent' : '#000000',
-              color: showChat ? '#000000' : '#ffffff',
-              border: 'none',
-              borderRadius: showChat ? '0' : '12px',
-              cursor: 'pointer',
-              fontSize: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '600',
-            }}
-          >
-            <MessageSquare size={24} />
-          </button>
-
-          {showChat && (
-            <>
-              {/* Chat Messages */}
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '15px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                background: '#ffffff',
-              }}>
-                {chatMessages.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    color: '#666666',
-                    fontSize: '14px',
-                    marginTop: '20px',
-                  }}>
-                    No messages yet. Start the conversation!
-                  </div>
-                ) : (
-                  chatMessages.map((msg, idx) => {
-                    const isOwnMessage = msg.username === username;
-                    const messageTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        <div style={{
-                          background: isOwnMessage ? '#000000' : '#e0e0e0',
-                          color: isOwnMessage ? '#ffffff' : '#000000',
-                          padding: '8px 12px',
-                          borderRadius: '12px',
-                          maxWidth: '80%',
-                          wordWrap: 'break-word',
-                          fontSize: '14px',
-                          border: '1px solid #000000',
-                        }}>
-                          {!isOwnMessage && (
-                            <div style={{
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              marginBottom: '4px',
-                              color: '#000000',
-                              opacity: 0.8,
-                            }}>
-                              {msg.username}
-                            </div>
-                          )}
-                          <div>{msg.message}</div>
-                          <div style={{
-                            fontSize: '10px',
-                            opacity: 0.7,
-                            marginTop: '4px',
-                            textAlign: 'right',
-                          }}>
-                            {messageTime}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={chatMessagesEndRef} />
-              </div>
-
-              {/* Chat Input */}
-              <div style={{
-                padding: '15px',
-                borderTop: '1px solid #000000',
-                display: 'flex',
-                gap: '10px',
-                background: '#ffffff',
-              }}>
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={handleChatKeyPress}
-                  placeholder="Type a message..."
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '2px solid #000000',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    background: '#ffffff',
-                    color: '#000000',
-                  }}
-                />
-                <button
-                  onClick={handleSendChatMessage}
-                  disabled={!chatInput.trim()}
-                  style={{
-                    padding: '10px 20px',
-                    background: chatInput.trim() ? '#000000' : '#cccccc',
-                    color: chatInput.trim() ? '#ffffff' : '#666666',
-                    border: '1px solid #000000',
-                    borderRadius: '8px',
-                    cursor: chatInput.trim() ? 'pointer' : 'not-allowed',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                  }}
-                >
-                  Send
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Instructions Box */}
-      {!showUsernameModal && (
-        <div style={{
-          position: 'absolute',
-          top: 100,
-          left: 20,
-          color: '#000000',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          background: 'rgba(255, 255, 255, 0.95)',
-          padding: '20px',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-          border: '1px solid #000000',
-          Width: '350px'
-        }}>
-          <h2 style={{
-            margin: '30px 0 15px 0',
-            fontSize: '24px',
-            fontWeight: '700',
-            color: '#000000'
-          }}>
-            VR Classroom
-          </h2>
-          <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#666666' }}>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Left Drag:</strong> Rotate view
-            </p>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Right Drag:</strong> Pan camera
-            </p>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Scroll:</strong> Zoom in/out
-            </p>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Voice:</strong> Click Start Voice to talk
-            </p>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Whiteboard:</strong> Click the whiteboard to add images
-            </p>
-            <p style={{ margin: '8px 0' }}>
-              <strong style={{ color: '#000000' }}>Chat:</strong> Click chat button to open group chat
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Connection Status & Users */}
-      {!showUsernameModal && (
-        <div style={{
-          position: 'absolute',
-          top: 340,
-          left: 20,
-          color: '#000000',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          background: 'rgba(255, 255, 255, 0.95)',
-          padding: '20px',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-          border: '1px solid #000000',
-          width: '350px',
-        }}>
-          <h3 style={{
-            margin: '0 0 15px 0',
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#000000',
-          }}>
-            {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-          </h3>
-          <div style={{ fontSize: '14px', marginBottom: '10px', color: '#666666' }}>
-            <strong style={{ color: '#000000' }}>Your Username:</strong> {username}
-          </div>
-          <div style={{ fontSize: '14px', marginBottom: '15px', color: '#666666' }}>
-            <strong style={{ color: '#000000' }}>Connected Users:</strong> {connectedUsers.length + 1}
-          </div>
-          {connectedUsers.length > 0 && (
-            <div style={{ fontSize: '12px', color: '#666666' }}>
-              <strong style={{ color: '#000000' }}>Online:</strong>
-              <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
-                {connectedUsers.map((user) => (
-                  <li key={user.socketId}>{user.username}</li>
-                ))}
-              </ul>
+                {/* Content */}
+                <div style={{ flex: 1, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    {whiteboardImage ? (
+                        <img src={whiteboardImage} alt="Whiteboard" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }} />
+                    ) : (
+                        <div style={{ color: '#888' }}>No image on whiteboard. Upload one!</div>
+                    )}
+                </div>
             </div>
-          )}
         </div>
+      )}
+
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleWhiteboardUpload} />
+
+      {/* 4. HUD CONTROLS */}
+      {!showUsernameModal && (
+        <>
+            {/* Controls Info */}
+            <div style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(255,255,255,0.9)', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                <strong>Controls:</strong>
+                <div style={{ fontSize: '13px', marginTop: '5px' }}>WASD / Arrows to Move</div>
+                <div style={{ fontSize: '13px' }}>Drag Mouse to Look</div>
+                <div style={{ fontSize: '13px' }}>Click Whiteboard to Zoom</div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '15px' }}>
+                <button 
+                    onClick={isRecording ? stopVoiceCapture : startVoiceCapture}
+                    style={{ padding: '15px 30px', borderRadius: '50px', border: 'none', background: isRecording ? '#ff4444' : '#222', color: 'white', cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'center' }}
+                >
+                    {isRecording ? <MicOff size={20}/> : <Mic size={20}/>}
+                    {isRecording ? "Stop Voice" : "Start Voice"}
+                </button>
+                <button 
+                    onClick={() => setIsMuted(!isMuted)}
+                    style={{ padding: '15px', borderRadius: '50%', border: 'none', background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+                >
+                    {isMuted ? <VolumeX size={20}/> : <Volume2 size={20}/>}
+                </button>
+            </div>
+
+            {/* Chat Box */}
+            <div style={{ 
+                position: 'absolute', bottom: 20, right: 20, 
+                width: showChat ? '300px' : '60px', height: showChat ? '400px' : '60px',
+                background: 'white', borderRadius: '12px', boxShadow: '0 5px 20px rgba(0,0,0,0.2)',
+                transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden'
+            }}>
+                <button 
+                    onClick={() => setShowChat(!showChat)}
+                    style={{ width:'100%', height:'60px', border:'none', background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
+                >
+                    <MessageSquare size={24} color="#333" />
+                </button>
+
+                {showChat && (
+                    <>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '10px', background: '#f9f9f9' }}>
+                            {chatMessages.map((m, i) => (
+                                <div key={i} style={{ marginBottom: '8px', textAlign: m.username === username ? 'right' : 'left' }}>
+                                    <span style={{ fontSize: '10px', color: '#888' }}>{m.username}</span>
+                                    <div style={{ background: m.username === username ? '#222' : '#ddd', color: m.username === username ? '#fff' : '#000', padding: '6px 10px', borderRadius: '10px', display: 'inline-block' }}>
+                                        {m.message}
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={chatMessagesEndRef} />
+                        </div>
+                        <div style={{ padding: '10px', borderTop: '1px solid #eee', display: 'flex' }}>
+                            <input 
+                                value={chatInput} 
+                                onChange={e => setChatInput(e.target.value)}
+                                onKeyPress={e => e.key === 'Enter' && handleSendChatMessage()}
+                                placeholder="Type..."
+                                style={{ flex: 1, border: 'none', outline: 'none' }}
+                            />
+                            <button onClick={handleSendChatMessage} style={{ border: 'none', background: 'transparent', color: '#2196f3', fontWeight: 'bold', cursor: 'pointer' }}>Send</button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </>
       )}
     </div>
   );
